@@ -168,6 +168,12 @@ void Application::update(float deltaTime) {
         scene->decreaseSpotLightInnerCutOff(60.0f * deltaTime); // 60 градусов в секунду
     }
 
+    // --- Управление точечным источником света ---
+    // L: Синхронизировать точечный свет с камерой
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+        scene->syncPointLightWithCamera(*camera);
+    }
+
     // Обновляем сцену (анимация объектов, прочие обновления)
     scene->update(deltaTime);
 }

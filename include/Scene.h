@@ -64,6 +64,14 @@ public:
      */
     float getSpotLightInnerCutOffDegrees() const;
 
+    // --- Управление точечным источником света (PointLight) ---
+
+    /**
+     * @brief Синхронизирует точечный источник света с позицией камеры.
+     * @param camera Текущая камера.
+     */
+    void syncPointLightWithCamera(const Camera& camera);
+
 private:
     // --- Содержимое сцены ---
     std::vector<std::shared_ptr<Object>> objects;
@@ -71,6 +79,9 @@ private:
 
     // --- Индекс активного прожектора ---
     int activeSpotLightIndex = -1;
+
+    // --- Индекс активного точечного источника света ---
+    int activePointLightIndex = -1;
 
     // --- Конструктор ---
     ShaderManager& shaderManager;

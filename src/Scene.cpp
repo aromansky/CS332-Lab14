@@ -7,7 +7,7 @@
 // ----------------------------------------------------------------------
 
 Scene::Scene(ShaderManager& shaderMgr)
-    : shaderManager(shaderMgr), activeSpotLightIndex(-1)
+    : shaderManager(shaderMgr), activeSpotLightIndex(-1), activePointLightIndex(-1)
 {
     // setupScene() вызывается из Application::initialize()
 }
@@ -21,7 +21,7 @@ void Scene::setupLights() {
     // Находится бесконечно далеко, лучи параллельны.
     auto directionalLight = std::make_shared<DirectionalLight>(
         sf::Vector3f(-0.5f, -1.0f, -0.3f), // Направление (вниз, немного назад, влево)
-        sf::Vector3f(1.0f, 1.0f, 0.95f),   // Интенсивность
+        sf::Vector3f(1.0f, 1.0f, 1.f),   // Интенсивность
         0.5f                               // Ambient-компонента
     );
     lights.push_back(directionalLight);
@@ -30,17 +30,18 @@ void Scene::setupLights() {
     // Светит из точки во все стороны.
     auto pointLight = std::make_shared<PointLight>(
         sf::Vector3f(-5.0f, 6.0f, 3.0f),  // Положение (высоко слева и сзади)
-        sf::Vector3f(0.5f, 0.7f, 1.0f),   // Интенсивность (голубоватый)
+        sf::Vector3f(1.0f, 1.0f, 1.0f),   // Интенсивность (голубоватый)
         1.0f, 0.05f, 0.01f                // Коэффициенты затухания
     );
     lights.push_back(pointLight);
+    activePointLightIndex = 1; // Индекс точечного света = 1
 
     // --- 3. Прожектор (Фонарик) ---
     // Свет образует конус, направлен на два куба.
     auto spotLight = std::make_shared<SpotLight>(
         sf::Vector3f(1.0f, 5.0f, -3.0f),  // Положение (выше кубов, спереди, между ними по X)
         sf::Vector3f(0.0f, -1.0f, 0.3f),  // Направление (прямо вниз и немного назад к кубам)
-        sf::Vector3f(1.0f, 0.8f, 0.5f),   // Интенсивность (оранжевый)
+        sf::Vector3f(1.0f, 1.0f, 1.0f),   // Интенсивность (оранжевый)
         std::cos(glm::radians(15.0f)),    // Inner CutOff (15 градусов) - более узкий конус
         std::cos(glm::radians(25.0f))     // Outer CutOff (25 градусов) - расширение конуса
     );
@@ -184,6 +185,26 @@ void Scene::syncSpotLightWithCamera(const Camera& camera) {
               << std::endl;
 }
 
+// --- Управление точечным источником света ---
+
+void Scene::syncPointLightWithCamera(const Camera& camera) {
+    if (activePointLightIndex < 0 || activePointLightIndex >= lights.size()) {
+        return;
+    }
+
+    auto pointLight = std::dynamic_pointer_cast<PointLight>(lights[activePointLightIndex]);
+    if (!pointLight) {
+        return;
+    }
+
+    // Синхронизируем позицию точечного света с позицией камеры
+    pointLight->position = camera.Position;
+
+    std::cout << "INFO::POINTLIGHT: Synced to camera position (" 
+              << camera.Position.x << ", " << camera.Position.y << ", " << camera.Position.z << ")" 
+              << std::endl;
+}
+
 void Scene::increaseSpotLightInnerCutOff(float delta) {
     if (activeSpotLightIndex < 0 || activeSpotLightIndex >= lights.size()) {
         return;
@@ -238,6 +259,7 @@ void Scene::setupScene() {
         setupObjects();
         std::cout << "INFO::SCENE: Scene initialized with " << objects.size() << " objects and " << lights.size() << " lights." << std::endl;
         std::cout << "INFO::SCENE: SpotLight index: " << activeSpotLightIndex << std::endl;
+        std::cout << "INFO::SCENE: PointLight index: " << activePointLightIndex << std::endl;
     }
     catch (const std::exception& e) {
         std::cerr << "FATAL ERROR::SCENE: Setup failed: " << e.what() << std::endl;
