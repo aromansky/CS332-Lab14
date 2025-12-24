@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 // ----------------------------------------------------------------------
-// Конструктор и Инициализация
+// Конструктор и инициализация
 // ----------------------------------------------------------------------
 
 Application::Application(int width, int height, const std::string& title)
@@ -16,7 +16,7 @@ Application::Application(int width, int height, const std::string& title)
 }
 
 bool Application::initialize(int width, int height, const std::string& title) {
-    // Настройка контекста OpenGL
+    // Настройка параметров OpenGL
     sf::ContextSettings settings;
     settings.depthBits = 24;
     settings.stencilBits = 8;
@@ -26,7 +26,7 @@ bool Application::initialize(int width, int height, const std::string& title) {
 
     // Создание окна
     window.create(sf::VideoMode(width, height), title, sf::Style::Default, settings);
-    window.setMouseCursorVisible(false); // Скрываем курсор для управления камерой
+    window.setMouseCursorVisible(false); // Скрываем курсор для полноэкранного управления
 
     // Инициализация GLEW
     glewExperimental = GL_TRUE;
@@ -35,27 +35,27 @@ bool Application::initialize(int width, int height, const std::string& title) {
         return false;
     }
 
-    // Включение тестирования глубины (для корректной отрисовки 3D)
+    // Включаем глубинный буфер (для отображения 3D)
     glEnable(GL_DEPTH_TEST);
 
-    // Установка области просмотра
+    // Установка видимой области (viewport)
     glViewport(0, 0, width, height);
 
     // --- Инициализация компонентов ---
     try {
         shaderManager = std::make_unique<ShaderManager>();
-        // ВАЖНО: загрузить все шейдеры (Phong, Toon, Custom) перед созданием сцены
+        // Примечание: загрузка всех шейдеров (Phong, Toon, Custom) должна быть выполнена здесь
         shaderManager->loadAllShaders();
 
-        // Позиция камеры (например, Vec3(0, 2, 5))
+        // Создание камеры (например, Vec3(0, 2, 5))
         camera = std::make_unique<Camera>(sf::Vector3f(0.0f, 2.0f, 5.0f));
         camera->aspectRatio = (float)width / (float)height;
         camera->MovementSpeed = CAMERA_SPEED;
         camera->MouseSensitivity = MOUSE_SENSITIVITY;
 
-        // Создание сцены и наполнение объектами
+        // Создание сцены и инициализация компонентов
         scene = std::make_unique<Scene>(*shaderManager);
-        scene->setupScene(); // Метод, где вы создаете 5+ объектов и свет
+        scene->setupScene(); // Здесь, где мы создаём 5+ объектов и свет
 
     }
     catch (const std::exception& e) {
@@ -67,7 +67,7 @@ bool Application::initialize(int width, int height, const std::string& title) {
 }
 
 // ----------------------------------------------------------------------
-// Главный цикл
+// Основной цикл
 // ----------------------------------------------------------------------
 
 void Application::run() {
@@ -85,7 +85,7 @@ void Application::run() {
 }
 
 // ----------------------------------------------------------------------
-// Обработка Ввода и Обновление
+// Обработка дввижения и ввода
 // ----------------------------------------------------------------------
 
 void Application::handleEvents() {
@@ -112,14 +112,14 @@ void Application::handleEvents() {
             }
 
             float xoffset = xpos - lastX;
-            float yoffset = lastY - ypos; // Инвертировано
+            float yoffset = lastY - ypos; // Инвертированно
 
             lastX = xpos;
             lastY = ypos;
 
             camera->processMouseMovement(xoffset, yoffset);
 
-            // Возвращаем курсор в центр для непрерывного вращения
+            // Возвращаем курсор в центр экрана для непрерывного управления
             sf::Vector2i center(window.getSize().x / 2, window.getSize().y / 2);
             sf::Mouse::setPosition(center, window);
             lastX = center.x;
@@ -138,7 +138,7 @@ void Application::handleEvents() {
 }
 
 void Application::update(float deltaTime) {
-    // Обработка клавиатуры для движения камеры
+    // Обработка клавиатурного ввода для движения камеры
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
         camera->processKeyboard(CameraMovement::FORWARD, deltaTime);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
@@ -152,17 +152,33 @@ void Application::update(float deltaTime) {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
         camera->processKeyboard(CameraMovement::DOWN, deltaTime);
 
-    // Здесь можно обновлять положение объектов (например, анимация)
+    // --- Управление прожектором ---
+    // P: Синхронизировать прожектор с камерой
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+        scene->syncSpotLightWithCamera(*camera);
+    }
+
+    // Q: Увеличить ширину конуса прожектора
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
+        scene->increaseSpotLightInnerCutOff(60.0f * deltaTime); // 60 градусов в секунду
+    }
+
+    // E: Уменьшить ширину конуса прожектора
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+        scene->decreaseSpotLightInnerCutOff(60.0f * deltaTime); // 60 градусов в секунду
+    }
+
+    // Обновляем сцену (анимация объектов, прочие обновления)
     scene->update(deltaTime);
 }
 
 // ----------------------------------------------------------------------
-// Отрисовка
+// Рендеринг
 // ----------------------------------------------------------------------
 
 void Application::render() {
-    // 1. Очистка буферов
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Установка цвета фона (темно-серый)
+    // 1. Очистка буфера
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Устанавливаем цвет фона (тёмно-серый)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // 2. Отрисовка сцены

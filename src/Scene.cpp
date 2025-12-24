@@ -7,7 +7,7 @@
 // ----------------------------------------------------------------------
 
 Scene::Scene(ShaderManager& shaderMgr)
-    : shaderManager(shaderMgr)
+    : shaderManager(shaderMgr), activeSpotLightIndex(-1)
 {
     // setupScene() вызывается из Application::initialize()
 }
@@ -45,6 +45,9 @@ void Scene::setupLights() {
         std::cos(glm::radians(25.0f))     // Outer CutOff (25 градусов) - расширение конуса
     );
     lights.push_back(spotLight);
+
+    // Индекс прожектора = 2 (после направленного и точечного света)
+    activeSpotLightIndex = 2;
 }
 
 void Scene::setupObjects() {
@@ -157,6 +160,75 @@ void Scene::sendLightDataToShader(Shader& shader) {
 }
 
 // ----------------------------------------------------------------------
+// Управление прожектором
+// ----------------------------------------------------------------------
+
+void Scene::syncSpotLightWithCamera(const Camera& camera) {
+    if (activeSpotLightIndex < 0 || activeSpotLightIndex >= lights.size()) {
+        return;
+    }
+
+    auto spotLight = std::dynamic_pointer_cast<SpotLight>(lights[activeSpotLightIndex]);
+    if (!spotLight) {
+        return;
+    }
+
+    // Синхронизируем позицию с позицией камеры
+    spotLight->position = camera.Position;
+
+    // Синхронизируем направление с направлением вида камеры
+    spotLight->direction = camera.Front;
+
+    std::cout << "INFO::SPOTLIGHT: Synced to camera position (" 
+              << camera.Position.x << ", " << camera.Position.y << ", " << camera.Position.z << ")" 
+              << std::endl;
+}
+
+void Scene::increaseSpotLightInnerCutOff(float delta) {
+    if (activeSpotLightIndex < 0 || activeSpotLightIndex >= lights.size()) {
+        return;
+    }
+
+    auto spotLight = std::dynamic_pointer_cast<SpotLight>(lights[activeSpotLightIndex]);
+    if (!spotLight) {
+        return;
+    }
+
+    // Получаем текущий угол в градусах
+    float currentAngleDeg = glm::degrees(glm::acos(spotLight->cutOff));
+    float newAngleDeg = currentAngleDeg + delta;
+
+    // Ограничиваем угол от 1 до 89 градусов
+    newAngleDeg = glm::clamp(newAngleDeg, 1.0f, 89.0f);
+
+    // Вычисляем новый внешний угол (на 10 градусов больше внутреннего)
+    float outerAngleDeg = newAngleDeg + 10.0f;
+    outerAngleDeg = glm::clamp(outerAngleDeg, 1.0f, 89.0f);
+
+    spotLight->cutOff = glm::cos(glm::radians(newAngleDeg));
+    spotLight->outerCutOff = glm::cos(glm::radians(outerAngleDeg));
+
+    std::cout << "INFO::SPOTLIGHT: Inner CutOff angle changed to " << newAngleDeg << " degrees" << std::endl;
+}
+
+void Scene::decreaseSpotLightInnerCutOff(float delta) {
+    increaseSpotLightInnerCutOff(-delta);
+}
+
+float Scene::getSpotLightInnerCutOffDegrees() const {
+    if (activeSpotLightIndex < 0 || activeSpotLightIndex >= lights.size()) {
+        return -1.0f;
+    }
+
+    auto spotLight = std::dynamic_pointer_cast<SpotLight>(lights[activeSpotLightIndex]);
+    if (!spotLight) {
+        return -1.0f;
+    }
+
+    return glm::degrees(glm::acos(spotLight->cutOff));
+}
+
+// ----------------------------------------------------------------------
 // Главный метод настройки
 // ----------------------------------------------------------------------
 
@@ -165,6 +237,7 @@ void Scene::setupScene() {
         setupLights();
         setupObjects();
         std::cout << "INFO::SCENE: Scene initialized with " << objects.size() << " objects and " << lights.size() << " lights." << std::endl;
+        std::cout << "INFO::SCENE: SpotLight index: " << activeSpotLightIndex << std::endl;
     }
     catch (const std::exception& e) {
         std::cerr << "FATAL ERROR::SCENE: Setup failed: " << e.what() << std::endl;

@@ -145,17 +145,12 @@
     <ClCompile Include="src\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Application.hpp" />
-    <ClInclude Include="include\Camera.hpp" />
-    <ClInclude Include="include\DirectionalLight.hpp" />
-    <ClInclude Include="include\Light.hpp" />
     <ClInclude Include="include\MathUtils.h" />
     <ClInclude Include="include\MeshParser.h" />
     <ClInclude Include="include\PointLight.hpp" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\ShaderManager.h" />
     <ClInclude Include="include\SpotLight.hpp" />
-    <ClInclude Include="include\Material.hpp" />
     <ClInclude Include="include\Mesh.hpp" />
     <ClInclude Include="include\Object.hpp" />
     <ClInclude Include="include\Scene.hpp" />

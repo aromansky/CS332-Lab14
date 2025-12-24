@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
-// Включаем основные компоненты
+// Подключаем необходимые компоненты
 #include "Object.h"
 #include "Camera.h"
 #include "ShaderManager.h"
@@ -16,46 +16,75 @@
 #include "Light/SpotLight.h"
 
 /**
- * @brief Управляет всеми объектами, источниками света и логикой сцены.
+ * @brief Основной класс сцены, содержащий объекты, источники света и камеру.
  */
 class Scene {
 public:
     /**
-     * @brief Конструктор сцены.
-     * @param shaderMgr Ссылка на ShaderManager для доступа к шейдерам.
+     * @brief Конструктор класса.
+     * @param shaderMgr Ссылка на ShaderManager для работы с шейдерами.
      */
     Scene(ShaderManager& shaderMgr);
 
-    // Главный метод настройки: создание объектов, загрузка мешей, установка света
+    // Главный метод инициализации: создание объектов, добавление источников света
     void setupScene();
 
-    // Обновление логики сцены (например, анимация)
+    // Обновление сцены на каждый кадр (анимация, движение)
     void update(float deltaTime);
 
     /**
-     * @brief Отрисовка всей сцены.
-     * @param camera Камера, с точки зрения которой происходит отрисовка.
+     * @brief Рендеринг всей сцены.
+     * @param camera Камера, в которой видны объекты и источники света.
      */
     void render(const Camera& camera);
 
+    // --- Управление прожектором (SpotLight) ---
+
+    /**
+     * @brief Синхронизирует прожектор с позицией и направлением камеры.
+     * @param camera Текущая камера.
+     */
+    void syncSpotLightWithCamera(const Camera& camera);
+
+    /**
+     * @brief Увеличивает внутренний угол конуса прожектора.
+     * @param delta Изменение угла в градусах.
+     */
+    void increaseSpotLightInnerCutOff(float delta);
+
+    /**
+     * @brief Уменьшает внутренний угол конуса прожектора.
+     * @param delta Уменьшение угла в градусах.
+     */
+    void decreaseSpotLightInnerCutOff(float delta);
+
+    /**
+     * @brief Возвращает текущий внутренний угол конуса прожектора (в градусах).
+     * @return Угол в градусах.
+     */
+    float getSpotLightInnerCutOffDegrees() const;
+
 private:
-    // --- Контейнеры Сцены ---
+    // --- Содержимое сцены ---
     std::vector<std::shared_ptr<Object>> objects;
     std::vector<std::shared_ptr<Light>> lights;
 
-    // --- Зависимости ---
+    // --- Индекс активного прожектора ---
+    int activeSpotLightIndex = -1;
+
+    // --- Конструктор ---
     ShaderManager& shaderManager;
 
-    // --- Приватные вспомогательные методы ---
+    // --- Методы вспомогательных операций ---
 
-    // 1. Создание и настройка требуемых источников света
+    // 1. Инициализация и управление источниками света и объектами
     void setupLights();
 
-    // 2. Создание объектов (мин. 5), загрузка мешей и применение материалов
+    // 2. Создание объектов (мин. 5), добавление текстур и установка параметров
     void setupObjects();
 
     /**
-     * @brief Отправляет все данные об источниках света в активный шейдер.
+     * @brief Отправляет данные всех источников света в активный шейдер.
      * @param shader Активный шейдер.
      */
     void sendLightDataToShader(Shader& shader);
